@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 from __future__ import print_function
 
@@ -380,7 +380,8 @@ class Checkerd(object):
 
     def load_config(self):
         conf = ConfigParser.RawConfigParser()
-        conf.read(self.cf)
+        if self.cf:
+            conf.read(self.cf)
         keywords = {
             ("collector", "api"): None,
             ("collector", "user"): None,
@@ -435,7 +436,11 @@ class Checkerd(object):
             self.unlock()
 
 def main(**kwargs):
-    daemon = Checkerd(**kwargs)
+    try:
+        daemon = Checkerd(**kwargs)
+    except Exception as exc:
+        print(exc, file=sys.stderr)
+        return 1
     try:
         daemon.lock()
         if daemon.options["checkerd_foreground"]:
