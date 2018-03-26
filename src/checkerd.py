@@ -273,7 +273,11 @@ class Checkerd(object):
         path = self.options["collector_api"].rstrip("/") + path
         headers = {'content-type': 'application/json'}
         try:
-            data = requests.get(path, params=params, headers=headers, auth=self.options["collector_auth"], verify=not self.options["collector_insecure"]).json()
+            result = requests.get(path, params=params, headers=headers, auth=self.options["collector_auth"], verify=not self.options["collector_insecure"])
+            if result.status_code != 200:
+                self.log.error("%d %s", result.status_code, result.content.decode())
+                return []
+            data = result.json()
             return data["data"]
         except Exception as exc:
             self.log.error(str(exc))
@@ -288,7 +292,9 @@ class Checkerd(object):
         try:
             #self.log.info("POST: %s", json.dumps(data, indent=4))
             result = requests.post(path, params=params, data=json.dumps(data), headers=headers, auth=self.options["collector_auth"], verify=not self.options["collector_insecure"])
-            #self.log.info(result.content)
+            if result.status_code != 200:
+                self.log.error("%d %s", result.status_code, result.content.decode())
+                return []
             data = result.json()
             return data["data"]
         except Exception as exc:
@@ -304,7 +310,9 @@ class Checkerd(object):
         try:
             #self.log.info("DELETE: %s", json.dumps(data, indent=4))
             result = requests.delete(path, params=params, data=json.dumps(data), headers=headers, auth=self.options["collector_auth"], verify=not self.options["collector_insecure"])
-            #self.log.info(result.content)
+            if result.status_code != 200:
+                self.log.error("%d %s", result.status_code, result.content.decode())
+                return []
             data = result.json()
             return data["data"]
         except Exception as exc:
@@ -383,27 +391,62 @@ class Checkerd(object):
         if self.cf:
             conf.read(self.cf)
         keywords = {
-            ("collector", "api"): None,
-            ("collector", "user"): None,
-            ("collector", "password"): None,
-            ("collector", "insecure"): False,
-            ("checkerd", "foreground"): False,
-            ("checkerd", "name"): "default",
-            ("checkerd", "loop_interval"): 1,
-            ("checkerd", "janitor_interval"): 30,
-            ("checkerd", "update_unchanged_interval"): 60,
-            ("checkerd", "workers"): 10,
+            ("collector", "api"): {
+                "default": None,
+            },
+            ("collector", "user"): {
+                "default": None,
+            },
+            ("collector", "password"): {
+                "default": None,
+            },
+            ("collector", "insecure"): {
+                "default": False,
+                "type": "boolean",
+            },
+            ("checkerd", "foreground"): {
+                "default": False,
+                "type": "boolean",
+            },
+            ("checkerd", "name"): {
+                "default": "default",
+            },
+            ("checkerd", "loop_interval"): {
+                "default": 1,
+                "type": "integer",
+            },
+            ("checkerd", "janitor_interval"): {
+                "default": 30,
+                "type": "integer",
+            },
+            ("checkerd", "update_unchanged_interval"): {
+                "default": 60,
+                "type": "integer",
+            },
+            ("checkerd", "workers"): {
+                "default": 10,
+                "type": "integer",
+            },
         }
-        for (section, option), default in keywords.items():
+        for (section, option), data in keywords.items():
             key = section + "_" + option
-            if self.options.get(key) is None:
-                try:
-                    self.options[key] = conf.get(section, option)
-                except:
-                    if default is None:
-                        raise Exception("%s is mandatory" % key)
-                    else:
-                        self.options[key] = default
+            ukey = key.upper()
+            if ukey in os.environ:
+                self.options[key] = os.environ[ukey]
+            else:
+                if self.options.get(key) is None:
+                    try:
+                        self.options[key] = conf.get(section, option)
+                    except:
+                        if data["default"] is None:
+                            raise Exception("%s is mandatory" % key)
+                        else:
+                            self.options[key] = data["default"]
+            if data.get("type") == "integer":
+                self.options[key] = int(self.options[key])
+            elif data.get("type") == "boolean":
+                self.options[key] = bool(self.options[key])
+
         self.options["collector_auth"] = (
             self.options["collector_user"],
             self.options["collector_password"],
