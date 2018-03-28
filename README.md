@@ -13,9 +13,9 @@ A poll-mode monitor daemon injecting alerts in the OpenSVC dashboard
 		"topology": "failover"
 	    },
 	    "container#1": {
-		"run_args": "-it --rm",
-		"run_command": "--user={env.user} --password={env.password} --api={env.api} --insecure --name={env.name} --workers={env.workers} --janitor-interval={env.janitor_interval} --update-unchanged-interval={env.update_unchanged_interval} --foreground",
-		"run_image": "checkerd:1",
+		"run_args": "-it --rm -e COLLECTOR_PASSWORD={env.password}",
+		"run_command": "--user={env.user} --api={env.api} --insecure --name={env.name} --workers={env.workers} --janitor-interval={env.janitor_interval} --update-unchanged-interval={env.update_unchanged_interval} --foreground",
+		"run_image": "opensvc/checkerd:latest",
 		"type": "docker"
 	    },
 	    "env": {
