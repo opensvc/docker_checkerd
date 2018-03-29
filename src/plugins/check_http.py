@@ -37,6 +37,8 @@ class Job(GenericJob):
             "verify": self.config.get("sslverify", True),
         }
         for header in self.config.get("headers", []):
+            if header.get("header") in (None, ""):                               
+                continue                                                         
             kwargs["headers"][header.get("header", "")] = header.get("value", "")
         if self.config.get("post_data"):
             req = requests.post
