@@ -1,9 +1,7 @@
 # docker_checkerd
 A poll-mode monitor daemon injecting alerts in the OpenSVC dashboard
 
-# deploy as a OpenSVC service
-
-::
+# Deploy as a OpenSVC service
 
 	echo '{
 	    "DEFAULT": {
@@ -28,5 +26,6 @@ A poll-mode monitor daemon injecting alerts in the OpenSVC dashboard
 		"update_unchanged_interval": 60
 	    }
 	}
-	' | sudo svcmgr -s checkerd create --interactive
+	' | sudo svcmgr -s checkerd create
+	sudo svcmgr -s checkerd edit config
 
