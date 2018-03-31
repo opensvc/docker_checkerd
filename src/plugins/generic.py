@@ -1,4 +1,5 @@
 import logging
+import traceback
 
 DEFAULT_SEVERITY = 1
 
@@ -15,7 +16,9 @@ def lazy(fn):
     return _lazyprop
 
 class JobFail(Exception):
-    pass
+    def __init__(self, fmt="", data={}):
+        self.fmt = fmt
+        self.data = data
 
 class GenericJob(object):
     def __init__(self, data):
@@ -32,6 +35,16 @@ class GenericJob(object):
             self.config = {}
         self.config.update(self.data.get("tag_attach_data", {}))
 
+    def __call__(self):
+        try:
+            self.check()
+            return self.fmt_result(0)
+        except JobFail as exc:
+            return self.fmt_result(1, exc.fmt, exc.data)
+        except Exception as exc:
+            self.log.exception(exc)
+            return self.fmt_result(1, traceback.format_exc(), {})
+
     def fmt_result(self, status, fmt=None, data=None):
         if data is None:
             data = {}
@@ -39,7 +52,7 @@ class GenericJob(object):
         alert = {
             "node_id": self.data.get("node_id"),
             "svc_id": self.data.get("svc_id"),
-            "dash_instance": self.data.get("tag_name"),
+            "dash_instance": self.data.get("tag_name")+"@"+data["poller"],
             "dash_type": self.name,
         }
         if status != 0:
@@ -53,6 +66,13 @@ class GenericJob(object):
             "cid": self.data.get("cid"),
             "alert": alert,
         }
+
+    def check(self):
+        """
+        Placeholder: to implement in children.
+        Errors are notified raising JobFail(fmt="myerror: %(mydata)s", data={"mydata": "test"})
+        """
+        return
 
     @lazy
     def log(self):

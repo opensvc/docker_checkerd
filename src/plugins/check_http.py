@@ -23,22 +23,15 @@ class Job(GenericJob):
             raise JobFail("no url in config: %s" % str(self.config))
         self.timeout = self.config.get("timeout", 1000)
 
-    def __call__(self):
-        try:
-            self.request()
-            return self.fmt_result(0)
-        except Exception as exc:
-            return self.fmt_result(1, str(exc), {})
-
-    def request(self):
+    def check(self):
         kwargs = {
             "headers": {},
             "timeout": self.timeout,
             "verify": self.config.get("sslverify", True),
         }
         for header in self.config.get("headers", []):
-            if header.get("header") in (None, ""):                               
-                continue                                                         
+            if header.get("header") in (None, "", b""):
+                continue
             kwargs["headers"][header.get("header", "")] = header.get("value", "")
         if self.config.get("post_data"):
             req = requests.post
@@ -47,7 +40,7 @@ class Job(GenericJob):
             req = requests.get
         result = req(self.url, **kwargs)
         if result.status_code != 200:
-            raise JobFail("status code %s" % result.status_code)
+            raise JobFail("status code %(status_code)d", {"status_code": result.status_code})
         op = self.config.get("op")
         if op is None:
             return

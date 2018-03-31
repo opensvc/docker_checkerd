@@ -111,7 +111,7 @@ def dequeue_worker(i, q, rq):
             rq.put(result)
         except Exception as exc:
             log = logging.getLogger("worker.%d"%i)
-            log.error(exc)
+            log.exception(exc)
         q.task_done()
     sys.exit(0)
 
@@ -226,8 +226,8 @@ class Checkerd(object):
         Job = self.plugins[kind].Job
         try:
             j = Job(checker)
-        except JobFail as exc:
-            self.log.error(str(exc))
+        except Exception as exc:
+            self.log.exception(exc)
             return
         self.queue.put(j, block=True)
 
